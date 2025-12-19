@@ -1,12 +1,6 @@
 import { gql } from "apollo-server";
 
-const typeDefs = gql`
-    type User {
-      id: ID!
-      name: String!
-      username: String!
-    }
-
+const types = gql`
     type Variant {
       size: String!
       quantity: Int!
@@ -20,6 +14,11 @@ const typeDefs = gql`
       variants: [Variant!]!
       inStock: Boolean!
       imageUrl: String!
+      color: String
+    }
+    
+    enum ClothesSort {
+      CATEGORY_ORDER
     }
 
     input VariantInput {
@@ -37,9 +36,9 @@ const typeDefs = gql`
       hasPrevPage: Boolean!
     }
 
+
     type Query {
-      users: [User!]!
-      clothes(page: Int = 1, limit: Int = 6): ClothesPage!
+      clothes(page: Int = 1, limit: Int = 6 sort: ClothesSort): ClothesPage!
       clothing(id: ID!): Clothing
     }
 
@@ -50,9 +49,10 @@ const typeDefs = gql`
         category: String!
         inStock: Boolean!
         imageUrl: String!
+        color: String!
         variants: [VariantInput!]!
       ): Clothing!
     }
 `;
 
-export default typeDefs;
+export default types;
