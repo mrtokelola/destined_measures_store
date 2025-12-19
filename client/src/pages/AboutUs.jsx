@@ -4,15 +4,12 @@ import styled from 'styled-components';
 const StyledContainer = styled.div`
   text-align: center;
 `;
-function HomePage() {
+function AboutUs() {
   return (
     <StyledContainer>
-      <h2>Destined Measures</h2>
-      <Link to={`/products`}>
-        <button>Shop all</button>
-      </Link>
+      <h2>About Us</h2>
     </StyledContainer>
   )
 }
 
-export default HomePage
+export default AboutUs
