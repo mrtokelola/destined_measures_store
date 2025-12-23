@@ -1,34 +1,21 @@
 import { ApolloServer } from "apollo-server";
-import types from "./schema/types.js";
-import resolvers from "./schema/resolvers.js";
+import types from "./src/graphql/schema/types.js";
+import clothingResolvers from "./src/graphql/resolvers/clothing/index.js";
 import mongoose from "mongoose";
+import Clothing from "./src/models/Clothing.js"
 
-const clothingSchema = new mongoose.Schema(
-  {
-    name: { type: String },
-    price: { type: Number, required: true },
-    category: { type: String },
-    inStock: { type: Boolean, default: true },
-    imageUrl: { type: String },
-    color: { type: String },
-    variants: [
-      {
-        size: { type: String, required: true },
-        quantity: { type: Number, required: true },
-      },
-    ],
-  },
-  { collection: "clothing" }
-);
+const MONGO_URI = process.env.MONGO_CONNECTION_STRING;
 
-export const Clothing = mongoose.model("Clothing", clothingSchema);
+if (!MONGO_URI) {
+  throw new Error("MONGO_CONNECTION_STRING is not set");
+}
 
-await mongoose.connect("mongodb://localhost/destined_measures");
+await mongoose.connect(MONGO_URI);
 console.log("MongoDB Connected");
 
 const server = new ApolloServer({
   typeDefs: types,
-  resolvers,
+  resolvers: clothingResolvers,
   context: () => ({
     models: { Clothing },
   }),

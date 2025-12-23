@@ -4,7 +4,7 @@
   "main": "api/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon api/index.js"
+    "start": "nodemon --exec \"node --env-file=./api/.env\" api/index.js"
   },
   "dependencies": {
     "apollo-server": "^3.13.0",
