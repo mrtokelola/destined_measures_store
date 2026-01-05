@@ -2,10 +2,7 @@ export async function getClothingById(id, Clothing) {
   return Clothing.findById(id);
 }
 
-export async function listClothes(
-  Clothing,
-  { page = 1, limit = 6, sort }
-) {
+export async function listClothes( Clothing, { page = 1, limit = 6, sort }) {
   const skip = (page - 1) * limit;
   const categoryOrder = ["Hoodie", "Tee", "Shorts"];
 

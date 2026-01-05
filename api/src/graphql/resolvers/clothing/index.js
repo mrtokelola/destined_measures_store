@@ -1,7 +1,4 @@
-import {
-  getClothingById,
-  listClothes,
-} from "../../../services/clothingService.js";
+import { getClothingById, listClothes, } from "../../../services/clothingService.js";
 
 const index = {
   Query: {
