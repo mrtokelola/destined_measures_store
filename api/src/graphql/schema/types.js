@@ -35,11 +35,53 @@ const types = gql`
       hasNextPage: Boolean!
       hasPrevPage: Boolean!
     }
+    
+    type OrderItem {
+      name: String
+      price: Float
+      size: String
+      color: String
+      quantity: Int
+    }
+    
+    type Customer {
+      name: String!
+      email: String!
+    }
+    
+    type Order {
+      id: ID!
+      customer: Customer
+      items: [OrderItem!]!
+      total: Float
+      createdAt: String
+      updatedAt: String
+    }
+    
+    input OrderItemInput {
+      name: String!
+      price: Float
+      size: String
+      color: String
+      quantity: Int
+    }
+    
+    input CustomerInput {
+      name: String
+      email: String
+    }
+    
+    input CreateOrderInput {
+      customer: CustomerInput
+      items: [OrderItemInput!]
+      total: Float
+    }
 
 
     type Query {
-      clothes(page: Int = 1, limit: Int = 6 sort: ClothesSort): ClothesPage!
+      clothes(page: Int = 1, limit: Int = 6, sort: ClothesSort): ClothesPage!
       clothing(id: ID!): Clothing
+      order(id: ID!): Order
     }
 
     type Mutation {
@@ -52,6 +94,7 @@ const types = gql`
         color: String!
         variants: [VariantInput!]!
       ): Clothing!
+        createOrder(input: CreateOrderInput!): Order!
     }
 `;
 

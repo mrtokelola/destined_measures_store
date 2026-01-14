@@ -19,7 +19,6 @@ const clothingSchema = new mongoose.Schema(
 );
 
 clothingSchema.index({ category: 1, inStock: 1 });
-clothingSchema.index({ price: 1 });
 
 export const Clothing = mongoose.model("Clothing", clothingSchema);
 
