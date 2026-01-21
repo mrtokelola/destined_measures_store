@@ -14,6 +14,8 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.6",
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.6.3",
     "bootstrap": "^5.3.8",
     "flowbite": "^4.0.1",
     "flowbite-react": "^0.12.13",

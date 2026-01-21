@@ -1,8 +1,21 @@
+import React, { useState } from "react";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
-import {Link, useParams} from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { FormControl, Select, InputLabel, MenuItem, } from "@mui/material";
+import {
+  FormControl,
+  Select,
+  InputLabel,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  IconButton,
+} from "@mui/material";
 import { QuantityPicker } from "react-qty-picker";
 
 const StyledContainer = styled.div`
@@ -11,12 +24,21 @@ const StyledContainer = styled.div`
   padding: 2rem;
 `;
 
+const ModalImage = styled.img`
+  width: 100%;
+  max-width: 200px;
+  margin: 0 auto 1rem;
+  display: block;
+  border-radius: 8px;
+`;
+
 const AddToCart = styled.button`
   margin-top: 1rem;
   width: 100%;
   height: 50px;
   background-color: white;
   border: 1px solid #dfdfdf;
+  cursor: pointer;
 `;
 
 const Price = styled.p`
@@ -28,8 +50,9 @@ const PickerLabel = styled.p`
   margin-bottom: .5rem;
 `;
 
-
 const PickerWrap = styled.div`
+  margin-top: 0.5rem;
+
   .quantity-picker {
     display: inline-flex;
     align-items: center;
@@ -47,6 +70,12 @@ const Grid = styled.div`
   }
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  height: 3rem;
+`;
+
 const Img = styled.img`
   width: 100%;
   height: auto;
@@ -56,6 +85,13 @@ const Img = styled.img`
 
 const StyledSelect = styled(Select)`
   margin-bottom: 1rem;
+`;
+
+const CloseButton = styled(IconButton)`
+  position: absolute !important;
+  right: 8px;
+  top: 8px;
+  color: #666;
 `;
 
 const GET_CLOTHING = gql`
@@ -78,11 +114,16 @@ const GET_CLOTHING = gql`
 
 function ProductsDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const { data, loading, error } = useQuery(GET_CLOTHING, {
     variables: { id },
     skip: !id,
   });
+
+  const [selectedSize, setSelectedSize] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (loading) {
     return <StyledContainer>Loading...</StyledContainer>;
@@ -98,6 +139,74 @@ function ProductsDetail() {
 
   const item = data.clothing;
 
+  const handleSizeChange = (event) => {
+    setSelectedSize(event.target.value);
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert("Please select a size before adding to cart.");
+      return;
+    }
+
+    let cart = [];
+
+    try {
+      const stored = localStorage.getItem("cart");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          cart = parsed;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read cart from localStorage", err);
+      cart = [];
+    }
+
+    const index = cart.findIndex(
+      (cartItem) => cartItem.id === item.id && cartItem.size === selectedSize
+    );
+
+    if (index !== -1) {
+      const updated = [...cart];
+      updated[index] = {
+        ...updated[index],
+        quantity: updated[index].quantity + quantity,
+      };
+      cart = updated;
+    } else {
+      const newItem = {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        color: item.color,
+        category: item.category,
+        size: selectedSize,
+        quantity,
+      };
+
+      cart = [...cart, newItem];
+    }
+
+    try {
+      localStorage.setItem("cart", JSON.stringify(cart));
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error("Failed to save cart to localStorage", err);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleGoToCart = () => {
+    setIsModalOpen(false);
+    navigate("/cart");
+  };
+
   return (
     <StyledContainer>
       <Grid>
@@ -107,32 +216,70 @@ function ProductsDetail() {
 
         <div>
           <h2>{item.name}</h2>
-          <p><strong>Category:</strong> {item.category}</p>
-          <p><strong>color:</strong> {item.color}</p>
-          <Price><strong>Price:</strong> ${item.price.toFixed(2)}</Price>
+          <p>
+            <strong>Category:</strong> {item.category}
+          </p>
+          <p>
+            <strong>Color:</strong> {item.color}
+          </p>
+          <Price>
+            <strong>Price:</strong> ${item.price.toFixed(2)}
+          </Price>
+
           <FormControl fullWidth>
-            <InputLabel id="demo-simple-select-label">Size</InputLabel>
+            <InputLabel id="size-select-label">Size</InputLabel>
             <StyledSelect
-              labelId="demo-simple-select-label"
-              id="demo-simple-select"
+              labelId="size-select-label"
+              id="size-select"
               label="Size"
+              value={selectedSize}
+              onChange={handleSizeChange}
             >
-              <MenuItem value={10}>Small</MenuItem>
-              <MenuItem value={20}>Medium</MenuItem>
-              <MenuItem value={30}>Large</MenuItem>
-              <MenuItem value={30}>XL</MenuItem>
-              <MenuItem value={30}>XXL</MenuItem>
+              {item.variants?.map((variant) => (
+                <MenuItem key={variant.size} value={variant.size}>
+                  {variant.size}
+                </MenuItem>
+              ))}
             </StyledSelect>
+
             <PickerWrap>
               <PickerLabel>Quantity</PickerLabel>
-              <QuantityPicker />
+              <QuantityPicker
+                value={quantity}
+                min={1}
+                onChange={(value) => setQuantity(value)}
+              />
             </PickerWrap>
-            <Link to={``}>
-              <AddToCart>Add to cart</AddToCart>
-            </Link>
+
+            <AddToCart type="button" onClick={handleAddToCart}>
+              Add to cart
+            </AddToCart>
           </FormControl>
         </div>
       </Grid>
+      <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ m: 0, p: 2 }}>
+          Added to cart
+          <CloseButton aria-label="close" onClick={handleCloseModal}>
+            ×
+          </CloseButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <ModalImage src={item.imageUrl} alt={item.name} />
+          <Typography variant="body1" gutterBottom align="center">
+            <strong>{item.name}</strong> has been added to your cart.
+          </Typography>
+          <Typography variant="body2" align="center">
+            Size: {selectedSize || "—"}
+            <br />
+            Quantity: {quantity}
+          </Typography>
+        </DialogContent>
+        <ButtonContainer>
+          <Button onClick={handleCloseModal}>Continue shopping</Button>
+          <Button onClick={handleGoToCart}>Go to cart</Button>
+        </ButtonContainer>
+      </Dialog>
     </StyledContainer>
   );
 }

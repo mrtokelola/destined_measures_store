@@ -1,12 +1,17 @@
+import React from 'react';
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import ProductsPage from "./pages/ProductPage.jsx";
 import ProductsDetail from "./pages/ProductsDetail.jsx";
+import CheckoutPage from "./pages/CheckoutPage.jsx";
 import AboutUs from "./pages/AboutUs.jsx";
 import ContactUs from "./pages/ContactUs.jsx";
 import { Routes, Route } from "react-router-dom";
 import styled from "styled-components";
+import ShoppingCart from "./pages/ShoppingCart.jsx";
+import { Elements } from "@stripe/react-stripe-js";
+import { stripePromise } from "./stripe.js";
 
 const AppWrapper = styled.div`
   min-height: 100vh;
@@ -30,6 +35,8 @@ function App() {
           <Route path="/products/:id" element={<ProductsDetail />} />
           <Route path="/about/" element={<AboutUs />} />
           <Route path="/contact/" element={<ContactUs />} />
+          <Route path="/cart/" element={<ShoppingCart />} />
+          <Route path="/checkout" element={<Elements stripe={stripePromise}> <CheckoutPage /></Elements>} />
         </Routes>
       </Main>
 

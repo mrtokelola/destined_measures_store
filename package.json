@@ -8,6 +8,7 @@
     "start": "nodemon --exec \"node --env-file=./api/.env\" api/index.js"
   },
   "dependencies": {
+    "@mui/icons-material": "^7.3.7",
     "apollo-server": "^3.13.0",
     "graphql": "^16.12.0",
     "mongoose": "^9.0.1",
