@@ -3,6 +3,7 @@ import types from "./src/graphql/schema/types.js";
 import resolvers from "./src/graphql/resolvers/index.js";
 import mongoose from "mongoose";
 import Clothing from "./src/models/Clothing.js";
+import Order from "./src/models/Order.js";
 import OrderDataSource from "./src/graphql/data-sources/OrderDataSource.js";
 
 const MONGO_URI = process.env.MONGO_CONNECTION_STRING;
@@ -20,7 +21,7 @@ const server = new ApolloServer({
   playground: true,
   introspection: true,
   context: () => {
-    const models = { Clothing };
+    const models = { Clothing, Order };
 
     return {
       models,
