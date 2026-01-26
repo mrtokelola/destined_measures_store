@@ -49,6 +49,43 @@ const types = gql`
     minPrice: Float
     maxPrice: Float
   }
+  
+  type OrderItem {
+    name: String!
+    price: Float
+    size: Int
+    color: String
+    quantity: Int
+  }
+  
+  type Customer {
+    name: String!
+    email: String
+  }
+  
+  type Order {
+    id: ID!
+    customer: Customer
+    items: [OrderItem!]!
+    total: Float
+  }
+
+  type PaymentIntentResult {
+    clientSecret: String!
+  }
+  
+  input OrderItemInput {
+    name: String!
+    price: Float
+    size: Int
+    color: String
+    quantity: Int
+  }
+  
+  input CustomerInput {
+    name: String
+    email: String
+  }
 
   type Query {
     clothes(
@@ -60,6 +97,7 @@ const types = gql`
 
     clothing(id: ID!): Clothing
     clothesFilters: ClothesFilters!
+    orders: [Order!]!
   }
 
   type Mutation {
@@ -72,6 +110,14 @@ const types = gql`
       color: String!
       variants: [VariantInput!]!
     ): Clothing!
+    
+    createOrder(
+      customer: CustomerInput!
+      items: [OrderItemInput!]!
+      total: Float!
+    ): Order!
+
+    createPaymentIntent(amount: Int!): PaymentIntentResult!
   }
 `;
 
