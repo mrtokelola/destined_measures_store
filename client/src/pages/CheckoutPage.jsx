@@ -4,9 +4,9 @@ import {
   useStripe,
   useElements,
   CardNumberElement,
-  CardExpiryElement,
-  CardCvcElement,
 } from "@stripe/react-stripe-js";
+import CheckoutForm from "../components/CheckoutForm.jsx";
+import {gql} from "@apollo/client";
 
 
 const PageWrapper = styled.div`
@@ -60,33 +60,22 @@ const DeliveryOptions = styled.div`
   margin-top: 1.5rem;
 `;
 
-const StripeInput = styled.div`
-  padding: 0.6rem 0.75rem;
-  border-radius: 4px;
-  border: 1px solid lightgrey;
-  background-color: #fff;
-
-  .StripeElement {
-    width: 100%;
-  }
-`;
-
 const Label = styled.label`
-  margin-bottom: 0.35rem;
-  font-size: 0.9rem;
+  margin-bottom: .35rem;
+  font-size: .9rem;
   font-weight: 500;
 `;
 
 const Input = styled.input`
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
   border: 1px solid ${(props) => (props.$hasError ? "red" : "lightgrey")};
   font-size: 0.9rem;
 `;
 
 const Select = styled.select`
   padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  border-radius: .5rem;
   border: 1px solid ${(props) => (props.$hasError ? "red" : "lightgrey")};
   font-size: 0.9rem;
 `;
@@ -101,17 +90,13 @@ const SubmitButton = styled.button`
   margin-top: 0.5rem;
   align-self: flex-start;
   padding: 0.6rem 1.5rem;
-  border-radius: 4px;
+  border-radius: .5rem;
   border: none;
-  background-color: #ab0000;
+  background-color: darkred;
   color: white;
   font-weight: 500;
   cursor: pointer;
   width: 100%;
-
-  &:hover {
-    opacity: 0.9;
-  }
 `;
 
 function CheckoutPage() {
@@ -132,8 +117,18 @@ function CheckoutPage() {
 
   const [errors, setErrors] = useState({});
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
-  const [deliveryOption, setDeliveryOption] = useState("twoDay"); // default
+  const [deliveryOption, setDeliveryOption] = useState("twoDay");
   const [cardError, setCardError] = useState("");
+  const TEST_TOTAL_CENTS = 5000;
+
+
+  const CREATE_PAYMENT_INTENT = gql`
+    mutation CreatePaymentIntent($amount: Int!) {
+      createPaymentIntent(amount: $amount) {
+          clientSecret
+      }
+    }
+  `;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,19 +150,19 @@ function CheckoutPage() {
   const validate = () => {
     const newErrors = {};
 
-    if (!formValues.firstName.trim()) {
+    if (!formValues.firstName) {
       newErrors.firstName = "First name is required";
     }
 
-    if (!formValues.lastName.trim()) {
+    if (!formValues.lastName) {
       newErrors.lastName = "Last name is required";
     }
 
-    if (!formValues.address1.trim()) {
+    if (!formValues.address1) {
       newErrors.address1 = "Address line 1 is required";
     }
 
-    if (!formValues.phone.trim()) {
+    if (!formValues.phone) {
       newErrors.phone = "Phone number is required";
     } else {
       const digits = formValues.phone.replace(/\D/g, "");
@@ -176,7 +171,7 @@ function CheckoutPage() {
       }
     }
 
-    if (!formValues.city.trim()) {
+    if (!formValues.city) {
       newErrors.city = "City is required";
     }
 
@@ -184,7 +179,7 @@ function CheckoutPage() {
       newErrors.state = "State is required";
     }
 
-    if (!formValues.zip.trim()) {
+    if (!formValues.zip) {
       newErrors.zip = "ZIP code is required";
     } else if (!/^\d{5}$/.test(formValues.zip)) {
       newErrors.zip = "Enter a 5-digit ZIP code";
@@ -204,49 +199,6 @@ function CheckoutPage() {
       console.log("Address form is valid:", formValues);
     } else {
       setShowDeliveryOptions(false);
-    }
-  };
-
-  const handlePaymentSubmit = async () => {
-    setCardError("");
-
-    if (!formValues.email.trim()) {
-      setErrors((prev) => ({
-        ...prev,
-        email: "Email is required for receipt",
-      }));
-      return;
-    }
-
-    const cardElement = elements.getElement(CardNumberElement);
-    if (!cardElement) {
-      setCardError("Card input is not ready yet.");
-      return;
-    }
-
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: "card",
-      card: cardElement,
-      billing_details: {
-        name: `${formValues.firstName} ${formValues.lastName}`,
-        email: formValues.email,
-        phone: formValues.phone,
-        address: {
-          line1: formValues.address1,
-          line2: formValues.address2,
-          city: formValues.city,
-          state: formValues.state,
-          postal_code: formValues.zip,
-        },
-      },
-    });
-
-    if (error) {
-      console.error(error);
-      setCardError(error.message || "There was an issue with your card.");
-    } else {
-      console.log("Stripe PaymentMethod created:", paymentMethod);
-      alert("PaymentMethod created — ready to send to backend.");
     }
   };
 
@@ -290,7 +242,6 @@ function CheckoutPage() {
             </FormGroup>
           </FormRow>
 
-          {/* Address 1 */}
           <FormGroup>
             <Label>Address line 1*</Label>
             <Input
@@ -477,48 +428,23 @@ function CheckoutPage() {
               <Divider />
               <Title>Payment Method</Title>
 
-              <FormGroup>
-                <Label>Credit card number*</Label>
-                <StripeInput>
-                  <CardNumberElement />
-                </StripeInput>
-              </FormGroup>
-
-              <FormRow>
-                <FormGroup>
-                  <Label>Expiry*</Label>
-                  <StripeInput>
-                    <CardExpiryElement />
-                  </StripeInput>
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>CVV*</Label>
-                  <StripeInput>
-                    <CardCvcElement />
-                  </StripeInput>
-                </FormGroup>
-              </FormRow>
-
-              <FormGroup>
-                <Label>Email*</Label>
-                <Input
-                  id="paymentEmail"
-                  type="email"
-                  name="email"
-                  placeholder="Email for receipt"
-                  value={formValues.email}
-                  onChange={handleChange}
-                  $hasError={!!errors.email}
-                />
-                {errors.email && <ErrorText>{errors.email}</ErrorText>}
-              </FormGroup>
-
-              {cardError && <ErrorText>{cardError}</ErrorText>}
-
-              <SubmitButton type="button" onClick={handlePaymentSubmit}>
-                Place Order
-              </SubmitButton>
+              <CheckoutForm
+                amountInCents={TEST_TOTAL_CENTS}
+                billingDetails={{
+                  name: `${formValues.firstName} ${formValues.lastName}`,
+                  phone: formValues.phone,
+                  address: {
+                    line1: formValues.address1,
+                    line2: formValues.address2,
+                    city: formValues.city,
+                    state: formValues.state,
+                    postal_code: formValues.zip,
+                  },
+                }}
+                onPaymentSuccess={(paymentIntent) => {
+                  console.log("Payment successful:", paymentIntent);
+                }}
+              />
             </>
           )}
         </StyledForm>
