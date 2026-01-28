@@ -117,7 +117,7 @@ function CheckoutPage() {
 
   const [errors, setErrors] = useState({});
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
-  const [deliveryOption, setDeliveryOption] = useState("twoDay");
+  const [deliveryOption, setDeliveryOption] = useState("standard");
   const [cardError, setCardError] = useState("");
   const TEST_TOTAL_CENTS = 5000;
 
