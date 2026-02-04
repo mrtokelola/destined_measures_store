@@ -29,7 +29,6 @@ export async function listClothes(Clothing, { page = 1, limit = 6, sort, filter 
 
   const totalCount = await Clothing.countDocuments(queryFilter);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-
   const safePage = Math.min(Math.max(1, page), totalPages);
   const skip = (safePage - 1) * limit;
 
