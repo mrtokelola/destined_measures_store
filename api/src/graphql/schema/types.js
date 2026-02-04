@@ -117,7 +117,21 @@ const types = gql`
       total: Float!
     ): Order!
 
-    createPaymentIntent(amount: Int!): PaymentIntentResult!
+    createPaymentIntent(
+      amount: Int!
+    ): PaymentIntentResult!
+      
+    decreaseInventory(
+      productId: ID! 
+      size: String!
+      quantity: Int!
+    ): Variant
+    
+    increaseInventory(
+      productId: ID!
+      size: String!
+      quantity: Int!
+    ): Variant
   }
 `;
 

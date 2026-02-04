@@ -28,9 +28,42 @@ const index = {
 
     createOrder: async (_parent, { customer, items, total }, { models }) => {
       const { Order } = models;
-
       const order = await Order.create({ customer, items, total });
       return order;
+    },
+
+    decreaseInventory: async (_parent, args, { models }) => {
+      const { productId, size, quantity } = args;
+      const { Clothing } = models;
+      const clothing = await Clothing.findById(productId);
+      const variant = clothing.variants.find((variant) => variant.size === size);
+
+      variant.quantity -= quantity;
+      clothing.inStock = clothing.variants.some((variant) => variant.quantity > 0);
+
+      await clothing.save();
+
+      return {
+        size: variant.size,
+        quantity: variant.quantity,
+      };
+    },
+
+    increaseInventory: async (_parent, args, { models }) => {
+      const { productId, size, quantity } = args;
+      const { Clothing } = models;
+      const clothing = await Clothing.findById(productId);
+      const variant = clothing.variants.find((variant) => variant.size === size);
+
+      variant.quantity += quantity;
+      clothing.inStock = clothing.variants.some((variant) => variant.quantity > 0);
+
+      await clothing.save();
+
+      return {
+        size: variant.size,
+        quantity: variant.quantity,
+      };
     },
 
     createPaymentIntent: async (_parent, { amount }, _ctx) => {

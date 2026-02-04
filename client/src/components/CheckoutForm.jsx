@@ -117,9 +117,6 @@ function CheckoutForm({
       });
 
       const clientSecret = data?.createPaymentIntent?.clientSecret;
-      if (!clientSecret) {
-        throw new Error("No clientSecret returned from backend.");
-      }
 
       const finalBillingDetails = {...(billingDetails || {}), email};
 
@@ -162,7 +159,7 @@ function CheckoutForm({
 
       <FormRow>
         <FormGroup>
-          <Label>Expiry*</Label>
+          <Label>Expire*</Label>
           <StripeInput>
             <CardExpiryElement />
           </StripeInput>

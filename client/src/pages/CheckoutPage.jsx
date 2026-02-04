@@ -3,10 +3,8 @@ import styled from "styled-components";
 import {
   useStripe,
   useElements,
-  CardNumberElement,
 } from "@stripe/react-stripe-js";
 import CheckoutForm from "../components/CheckoutForm.jsx";
-import {gql} from "@apollo/client";
 
 
 const PageWrapper = styled.div`
@@ -118,17 +116,7 @@ function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState("standard");
-  const [cardError, setCardError] = useState("");
   const TEST_TOTAL_CENTS = 5000;
-
-
-  const CREATE_PAYMENT_INTENT = gql`
-    mutation CreatePaymentIntent($amount: Int!) {
-      createPaymentIntent(amount: $amount) {
-          clientSecret
-      }
-    }
-  `;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
