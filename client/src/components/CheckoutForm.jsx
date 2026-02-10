@@ -12,7 +12,7 @@ import { useMutation } from "@apollo/client/react";
 
 const StripeInput = styled.div`
   padding: 0.6rem 0.75rem;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
   border: 1px solid lightgrey;
   background-color: white;
 
@@ -35,14 +35,14 @@ const FormRow = styled.div`
 `;
 
 const Label = styled.label`
-  margin-bottom: .35rem;
+  margin-bottom: 0.35rem;
   font-size: 1rem;
   font-weight: 500;
 `;
 
 const Input = styled.input`
-  padding: .5rem .75rem;
-  border-radius: .5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
   border: 1px solid ${(props) => (props.$hasError ? "red" : "lightgrey")};
   font-size: 1rem;
 `;
@@ -50,21 +50,21 @@ const Input = styled.input`
 const ErrorText = styled.span`
   color: red;
   font-size: 0.8rem;
-  margin-top: .25rem;
+  margin-top: 0.25rem;
 `;
 
 const SuccessText = styled.span`
   color: seagreen;
-  font-size: .9rem;
-  margin-top: .5rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
   display: block;
 `;
 
 const SubmitButton = styled.button`
   margin-top: 0.75rem;
   align-self: flex-start;
-  padding: .5rem 1.5rem;
-  border-radius: .5rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.5rem;
   border: none;
   background-color: ${(props) => (props.disabled ? "#888888" : "#ab0000")};
   color: white;
@@ -74,21 +74,34 @@ const SubmitButton = styled.button`
 `;
 
 const CREATE_PAYMENT_INTENT = gql`
-  mutation CreatePaymentIntent($amount: Int!) {
-    createPaymentIntent(amount: $amount) {
-        clientSecret
+    mutation CreatePaymentIntent($amount: Int!) {
+        createPaymentIntent(amount: $amount) {
+            clientSecret
+        }
+    }
+`;
+
+const DECREASE_INVENTORY = gql`
+  mutation DecreaseInventory($productId: ID!, $size: String!, $quantity: Int!) {
+    decreaseInventory(productId: $productId, size: $size, quantity: $quantity) {
+      size
+      quantity
     }
   }
 `;
+
 function CheckoutForm({
   amountInCents = 5000,
   billingDetails,
   buttonLabel = "Place Order",
   onPaymentSuccess,
+  cartItem,
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [createPaymentIntent] = useMutation(CREATE_PAYMENT_INTENT);
+  const [decreaseInventory] = useMutation(DECREASE_INVENTORY);
+
   const [email, setEmail] = useState(billingDetails?.email || "");
   const [emailError, setEmailError] = useState("");
   const [cardError, setCardError] = useState("");
@@ -107,7 +120,17 @@ function CheckoutForm({
       return;
     }
 
+    if (!stripe || !elements) {
+      setGeneralError("Stripe has not loaded yet. Please wait a moment.");
+      return;
+    }
+
     const cardElement = elements.getElement(CardNumberElement);
+
+    if (!cardElement) {
+      setGeneralError("Unable to find card element.");
+      return;
+    }
 
     setIsProcessing(true);
 
@@ -118,7 +141,11 @@ function CheckoutForm({
 
       const clientSecret = data?.createPaymentIntent?.clientSecret;
 
-      const finalBillingDetails = {...(billingDetails || {}), email};
+      if (!clientSecret) {
+        throw new Error("No clientSecret returned from server.");
+      }
+
+      const finalBillingDetails = { ...(billingDetails || {}), email };
 
       const { error, paymentIntent } = await stripe.confirmCardPayment(
         clientSecret,
@@ -133,6 +160,25 @@ function CheckoutForm({
       if (error) {
         setCardError(error.message || "There was an issue with your card.");
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        if (cartItem && cartItem.productId && cartItem.size) {
+          const quantityToDecrease = Number(cartItem.quantity) || 0;
+
+          if (quantityToDecrease > 0) {
+            try {
+              const invResult = await decreaseInventory({
+                variables: {
+                  productId: cartItem.productId,
+                  size: cartItem.size,
+                  quantity: quantityToDecrease,
+                },
+              });
+
+            } catch (invErr) {
+              console.error("Inventory update failed:");
+            }
+          }
+        }
+
         setSuccessMessage("Payment successful!");
         if (typeof onPaymentSuccess === "function") {
           onPaymentSuccess(paymentIntent);
@@ -147,6 +193,8 @@ function CheckoutForm({
       setIsProcessing(false);
     }
   };
+
+  const isSubmitDisabled = !stripe || !elements || isProcessing || !email;
 
   return (
     <div>
@@ -198,7 +246,7 @@ function CheckoutForm({
 
       <SubmitButton
         type="button"
-        disabled={!stripe || !elements || isProcessing}
+        disabled={isSubmitDisabled}
         onClick={handlePayment}
       >
         {isProcessing ? "Processing..." : buttonLabel}
