@@ -1,11 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import {
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import CheckoutForm from "../components/CheckoutForm.jsx";
-
 
 const PageWrapper = styled.div`
   display: flex;
@@ -59,21 +54,21 @@ const DeliveryOptions = styled.div`
 `;
 
 const Label = styled.label`
-  margin-bottom: .35rem;
-  font-size: .9rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
   font-weight: 500;
 `;
 
 const Input = styled.input`
-  padding: .5rem .75rem;
-  border-radius: .5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
   border: 1px solid ${(props) => (props.$hasError ? "red" : "lightgrey")};
   font-size: 0.9rem;
 `;
 
 const Select = styled.select`
   padding: 0.5rem 0.75rem;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
   border: 1px solid ${(props) => (props.$hasError ? "red" : "lightgrey")};
   font-size: 0.9rem;
 `;
@@ -88,7 +83,7 @@ const SubmitButton = styled.button`
   margin-top: 0.5rem;
   align-self: flex-start;
   padding: 0.6rem 1.5rem;
-  border-radius: .5rem;
+  border-radius: 0.5rem;
   border: none;
   background-color: darkred;
   color: white;
@@ -98,9 +93,6 @@ const SubmitButton = styled.button`
 `;
 
 function CheckoutPage() {
-  const stripe = useStripe();
-  const elements = useElements();
-
   const [formValues, setFormValues] = useState({
     firstName: "",
     lastName: "",
@@ -116,15 +108,48 @@ function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState("standard");
-  const TEST_TOTAL_CENTS = 5000;
+
+  const [cartItems, setCartItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cart");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setCartItems(parsed);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read cart from localStorage:", err);
+    }
+  }, []);
+
+  const fallbackTotalCents = 5000;
+  const cartTotalCents =
+    cartItems.length > 0 ? Math.round(cartItems.reduce((sum, item) => {
+      const price = Number(item.price) || 0;
+      const quantity = Number(item.quantity) || 1;
+      return sum + price * quantity;
+    }, 0) * 100) : fallbackTotalCents;
+
+  const firstCartItem = cartItems[0];
+
+  const cartItemForCheckout = firstCartItem
+    ? {
+      productId: firstCartItem.id,
+      size: firstCartItem.size,
+      quantity: firstCartItem.quantity,
+    }
+    : null;
+
+  console.log("cartItems:", cartItems);
+  console.log("cartItemForCheckout:", cartItemForCheckout);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormValues((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormValues((prev) => ({...prev, [name]: value,}));
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -383,7 +408,9 @@ function CheckoutPage() {
                     checked={deliveryOption === "standard"}
                     onChange={(e) => setDeliveryOption(e.target.value)}
                   />
-                  <label className="form-check-label">Standard delivery (Free)</label>
+                  <label className="form-check-label">
+                    Standard delivery (Free)
+                  </label>
                 </StyledSelect>
 
                 <StyledSelect className="form-check">
@@ -396,7 +423,9 @@ function CheckoutPage() {
                     checked={deliveryOption === "twoDay"}
                     onChange={(e) => setDeliveryOption(e.target.value)}
                   />
-                  <label className="form-check-label">2–3 business days ($10.00)</label>
+                  <label className="form-check-label">
+                    2–3 business days ($10.00)
+                  </label>
                 </StyledSelect>
 
                 <StyledSelect className="form-check">
@@ -409,7 +438,9 @@ function CheckoutPage() {
                     checked={deliveryOption === "oneDay"}
                     onChange={(e) => setDeliveryOption(e.target.value)}
                   />
-                  <label className="form-check-label">1–2 business days ($15.00)</label>
+                  <label className="form-check-label">
+                    1–2 business days ($15.00)
+                  </label>
                 </StyledSelect>
               </DeliveryOptions>
 
@@ -417,7 +448,7 @@ function CheckoutPage() {
               <Title>Payment Method</Title>
 
               <CheckoutForm
-                amountInCents={TEST_TOTAL_CENTS}
+                amountInCents={cartTotalCents}
                 billingDetails={{
                   name: `${formValues.firstName} ${formValues.lastName}`,
                   phone: formValues.phone,
@@ -429,6 +460,7 @@ function CheckoutPage() {
                     postal_code: formValues.zip,
                   },
                 }}
+                cartItem={cartItemForCheckout}
                 onPaymentSuccess={(paymentIntent) => {
                   console.log("Payment successful:", paymentIntent);
                 }}

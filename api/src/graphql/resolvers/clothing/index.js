@@ -35,19 +35,27 @@ const index = {
     decreaseInventory: async (_parent, args, { models }) => {
       const { productId, size, quantity } = args;
       const { Clothing } = models;
-      const clothing = await Clothing.findById(productId);
-      const variant = clothing.variants.find((variant) => variant.size === size);
 
-      variant.quantity -= quantity;
-      clothing.inStock = clothing.variants.some((variant) => variant.quantity > 0);
+      const clothing = await Clothing.findById(productId);
+
+      const variant = clothing.variants.find((v) => v.size === size);
+      if (!variant) {
+        const availableSizes = clothing.variants.map((v) => v.size).join(", ");
+      }
+
+      variant.quantity = Math.max(variant.quantity - quantity, 0);
+      clothing.inStock = clothing.variants.some((v) => v.quantity > 0);
 
       await clothing.save();
 
       return {
         size: variant.size,
         quantity: variant.quantity,
+        inStock: clothing.inStock,
       };
     },
+
+
 
     increaseInventory: async (_parent, args, { models }) => {
       const { productId, size, quantity } = args;
