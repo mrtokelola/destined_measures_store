@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   Typography,
   IconButton,
@@ -39,25 +38,20 @@ const AddToCart = styled.button`
   background-color: white;
   border: 1px solid #dfdfdf;
   cursor: pointer;
+  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 `;
 
 const Price = styled.p`
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const PickerLabel = styled.p`
   text-transform: uppercase;
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const PickerWrap = styled.div`
   margin-top: 0.5rem;
-
-  .quantity-picker {
-    display: inline-flex;
-    align-items: center;
-    width: fit-content;
-  }
 `;
 
 const Grid = styled.div`
@@ -91,7 +85,7 @@ const CloseButton = styled(IconButton)`
   position: absolute !important;
   right: 8px;
   top: 8px;
-  color: #666;
+  color: darkgrey;
 `;
 
 const GET_CLOTHING = gql`
@@ -138,9 +132,19 @@ function ProductsDetail() {
   }
 
   const item = data.clothing;
+  const variants = item.variants || [];
+  const allSizesSoldOut = variants.length > 0 && variants.every((v) => v.quantity === 0);
 
   const handleSizeChange = (event) => {
-    setSelectedSize(event.target.value);
+    const value = event.target.value;
+    setSelectedSize(value);
+
+    const variant = variants.find((v) => v.size === value);
+    if (variant && variant.quantity > 0) {
+      setQuantity(1);
+    } else {
+      setQuantity(1);
+    }
   };
 
   const handleAddToCart = () => {
@@ -207,6 +211,11 @@ function ProductsDetail() {
     navigate("/cart");
   };
 
+  const handleContinueShopping = () => {
+    setIsModalOpen(false);
+    navigate("/products");
+  };
+
   return (
     <StyledContainer>
       <Grid>
@@ -235,11 +244,20 @@ function ProductsDetail() {
               value={selectedSize}
               onChange={handleSizeChange}
             >
-              {item.variants?.map((variant) => (
-                <MenuItem key={variant.size} value={variant.size}>
-                  {variant.size}
-                </MenuItem>
-              ))}
+              {variants.map((variant) => {
+                const isOutOfStock = variant.quantity === 0;
+
+                return (
+                  <MenuItem
+                    key={variant.size}
+                    value={variant.size}
+                    disabled={isOutOfStock}
+                    sx={isOutOfStock ? { color: "grey" } : undefined}
+                  >
+                    {variant.size}
+                  </MenuItem>
+                );
+              })}
             </StyledSelect>
 
             <PickerWrap>
@@ -251,8 +269,12 @@ function ProductsDetail() {
               />
             </PickerWrap>
 
-            <AddToCart type="button" onClick={handleAddToCart}>
-              Add to cart
+            <AddToCart
+              type="button"
+              onClick={handleAddToCart}
+              disabled={allSizesSoldOut}
+            >
+              {allSizesSoldOut ? "Sold out" : "Add to cart"}
             </AddToCart>
           </FormControl>
         </div>
@@ -276,7 +298,7 @@ function ProductsDetail() {
           </Typography>
         </DialogContent>
         <ButtonContainer>
-          <Button onClick={handleCloseModal}>Continue shopping</Button>
+          <Button onClick={handleContinueShopping}>Continue shopping</Button>
           <Button onClick={handleGoToCart}>Go to cart</Button>
         </ButtonContainer>
       </Dialog>

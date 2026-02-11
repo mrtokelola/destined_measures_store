@@ -122,10 +122,13 @@ function ShoppingCart() {
               Subtotal: <strong>${subtotal.toFixed(2)}</strong>
             </p>
             <ButtonContainer>
-              <ClearButton onClick={handleClearCart}>Clear cart</ClearButton>
               <Link to={`/checkout`}>
                 <ClearButton>Checkout</ClearButton>
               </Link>
+              <Link to={`/products`}>
+                <ClearButton>Continue Shopping</ClearButton>
+              </Link>
+              <ClearButton onClick={handleClearCart}>Clear cart</ClearButton>
             </ButtonContainer>
           </Summary>
         </>

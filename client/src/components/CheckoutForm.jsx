@@ -95,7 +95,7 @@ function CheckoutForm({
   billingDetails,
   buttonLabel = "Place Order",
   onPaymentSuccess,
-  cartItem,
+  cartItems,
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -160,23 +160,40 @@ function CheckoutForm({
       if (error) {
         setCardError(error.message || "There was an issue with your card.");
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        if (cartItem && cartItem.productId && cartItem.size) {
-          const quantityToDecrease = Number(cartItem.quantity) || 0;
+        if (Array.isArray(cartItems) && cartItems.length > 0) {
+          for (const item of cartItems) {
+            const productId = item.id || item.productId || item._id;
+            const size = item.size || item.selectedSize;
+            const quantity = Number(item.quantity);
 
-          if (quantityToDecrease > 0) {
+            if (!productId || !size || !Number.isFinite(quantity) || quantity <= 0) {
+              console.warn(
+                "Skipping inventory update for item (bad vars):",
+                item
+              );
+              continue;
+            }
+
             try {
-              const invResult = await decreaseInventory({
-                variables: {
-                  productId: cartItem.productId,
-                  size: cartItem.size,
-                  quantity: quantityToDecrease,
-                },
+              await decreaseInventory({
+                variables: { productId, size, quantity },
               });
-
             } catch (invErr) {
-              console.error("Inventory update failed:");
+              console.error("Inventory update failed for item:", item);
+
+              if (invErr.networkError && invErr.networkError.result) {
+                console.error(
+                  "Network error result:",
+                  invErr.networkError.result
+                );
+              }
+              if (invErr.graphQLErrors && invErr.graphQLErrors.length) {
+                console.error("GraphQL errors:", invErr.graphQLErrors);
+              }
             }
           }
+        } else {
+          console.warn("No cartItems provided, skipping inventory update.");
         }
 
         setSuccessMessage("Payment successful!");
@@ -193,8 +210,6 @@ function CheckoutForm({
       setIsProcessing(false);
     }
   };
-
-  const isSubmitDisabled = !stripe || !elements || isProcessing || !email;
 
   return (
     <div>
@@ -246,7 +261,7 @@ function CheckoutForm({
 
       <SubmitButton
         type="button"
-        disabled={isSubmitDisabled}
+        disabled={!stripe || !elements || isProcessing}
         onClick={handlePayment}
       >
         {isProcessing ? "Processing..." : buttonLabel}
