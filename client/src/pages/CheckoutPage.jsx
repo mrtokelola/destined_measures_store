@@ -463,6 +463,8 @@ function CheckoutPage() {
                 cartItem={cartItemForCheckout}
                 onPaymentSuccess={(paymentIntent) => {
                   console.log("Payment successful:", paymentIntent);
+                  localStorage.removeItem("cart");
+                  setCartItems([]);
                 }}
               />
             </>
