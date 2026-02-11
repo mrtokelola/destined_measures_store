@@ -160,6 +160,7 @@ function ProductPage() {
     error: clothesError,
   } = useQuery(GET_CLOTHES, {
     variables: { page, limit: ITEMS_PER_PAGE, sort: "CATEGORY_ORDER", filter: filterInput },
+    fetchPolicy: "network-only",
   });
 
   const {

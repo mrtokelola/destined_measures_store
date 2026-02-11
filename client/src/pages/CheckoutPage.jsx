@@ -74,7 +74,7 @@ const Select = styled.select`
 `;
 
 const ErrorText = styled.span`
-  color: #dc3545;
+  color: red;
   font-size: 0.8rem;
   margin-top: 0.25rem;
 `;
@@ -127,24 +127,14 @@ function CheckoutPage() {
 
   const fallbackTotalCents = 5000;
   const cartTotalCents =
-    cartItems.length > 0 ? Math.round(cartItems.reduce((sum, item) => {
-      const price = Number(item.price) || 0;
-      const quantity = Number(item.quantity) || 1;
-      return sum + price * quantity;
-    }, 0) * 100) : fallbackTotalCents;
-
-  const firstCartItem = cartItems[0];
-
-  const cartItemForCheckout = firstCartItem
-    ? {
-      productId: firstCartItem.id,
-      size: firstCartItem.size,
-      quantity: firstCartItem.quantity,
-    }
-    : null;
-
-  console.log("cartItems:", cartItems);
-  console.log("cartItemForCheckout:", cartItemForCheckout);
+    cartItems.length > 0
+      ? Math.round(
+        cartItems.reduce((sum, item) => {
+          const price = Number(item.price) || 0;
+          const quantity = Number(item.quantity) || 1;
+          return sum + price * quantity;
+        }, 0) * 100
+      ) : fallbackTotalCents;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -460,9 +450,9 @@ function CheckoutPage() {
                     postal_code: formValues.zip,
                   },
                 }}
-                cartItem={cartItemForCheckout}
+                cartItems={cartItems}
                 onPaymentSuccess={(paymentIntent) => {
-                  console.log("Payment successful:", paymentIntent);
+                  console.log("Payment successful:");
                   localStorage.removeItem("cart");
                   setCartItems([]);
                 }}
