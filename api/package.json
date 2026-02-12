@@ -1,0 +1,28 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --exec \"node --env-file=.env\" index.js"
+  },
+  "repository": {
+    "type": "module",
+    "url": "https://github.com/mrtokelola/destined_measures_store.git"
+  },
+  "private": true,
+  "dependencies": {
+    "@apollo/server": "^5.4.0",
+    "@apollo/server-plugin-landing-page-graphql-playground": "^4.0.1",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "graphql": "^16.12.0",
+    "graphql-tag": "^2.12.6",
+    "mongoose": "^9.2.1",
+    "stripe": "^20.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

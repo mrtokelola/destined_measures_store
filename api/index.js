@@ -1,11 +1,13 @@
-import { ApolloServer } from "apollo-server";
+import "dotenv/config";
+import mongoose from "mongoose";
+import { ApolloServer } from "@apollo/server";
+import { startStandaloneServer } from "@apollo/server/standalone";
 import types from "./src/graphql/schema/types.js";
 import resolvers from "./src/graphql/resolvers/index.js";
-import mongoose from "mongoose";
 import Clothing from "./src/models/Clothing.js";
 import Order from "./src/models/Order.js";
 import OrderDataSource from "./src/graphql/data-sources/OrderDataSource.js";
-
+const PORT = Number(process.env.PORT || 3000);
 const MONGO_URI = process.env.MONGO_CONNECTION_STRING;
 
 if (!MONGO_URI) {
@@ -18,9 +20,12 @@ console.log("MongoDB Connected");
 const server = new ApolloServer({
   typeDefs: types,
   resolvers,
-  playground: true,
   introspection: true,
-  context: () => {
+});
+
+const { url } = await startStandaloneServer(server, {
+  listen: { port: PORT },
+  context: async () => {
     const models = { Clothing, Order };
 
     return {
@@ -32,5 +37,4 @@ const server = new ApolloServer({
   },
 });
 
-const { url } = await server.listen(3000);
-console.log(`Server started at: ${url}`);
+console.log(`Server running on: ${url}`);
