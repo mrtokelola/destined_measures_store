@@ -74,18 +74,23 @@ const SubmitButton = styled.button`
 `;
 
 const CREATE_PAYMENT_INTENT = gql`
-    mutation CreatePaymentIntent($amount: Int!) {
-        createPaymentIntent(amount: $amount) {
-            clientSecret
-        }
+  mutation CreatePaymentIntent($amount: Int!, $items: [OrderItemInput!]!) {
+    createPaymentIntent(amount: $amount, items: $items) {
+      clientSecret
     }
+  }
 `;
 
-const DECREASE_INVENTORY = gql`
-  mutation DecreaseInventory($productId: ID!, $size: String!, $quantity: Int!) {
-    decreaseInventory(productId: $productId, size: $size, quantity: $quantity) {
-      size
-      quantity
+const CREATE_ORDER = gql`
+  mutation CreateOrder($customer: CustomerInput!, $items: [OrderItemInput!]!, $total: Float!) {
+    createOrder(customer: $customer, items: $items, total: $total) {
+      id
+      total
+      items {
+        name
+        size
+        quantity
+      }
     }
   }
 `;
@@ -100,7 +105,7 @@ function CheckoutForm({
   const stripe = useStripe();
   const elements = useElements();
   const [createPaymentIntent] = useMutation(CREATE_PAYMENT_INTENT);
-  const [decreaseInventory] = useMutation(DECREASE_INVENTORY);
+  const [createOrder] = useMutation(CREATE_ORDER);
 
   const [email, setEmail] = useState(billingDetails?.email || "");
   const [emailError, setEmailError] = useState("");
@@ -135,8 +140,19 @@ function CheckoutForm({
     setIsProcessing(true);
 
     try {
+      const safeAmount = Math.round(Number(amountInCents) || 0);
+
+      const orderItems = cartItems.map((item) => ({
+        productId: item.id || item.productId,
+        name: item.name,
+        price: item.price,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+      }))
+
       const { data } = await createPaymentIntent({
-        variables: { amount: amountInCents },
+        variables: { amount: safeAmount, items: orderItems },
       });
 
       const clientSecret = data?.createPaymentIntent?.clientSecret;
@@ -160,45 +176,51 @@ function CheckoutForm({
       if (error) {
         setCardError(error.message || "There was an issue with your card.");
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        if (Array.isArray(cartItems) && cartItems.length > 0) {
-          for (const item of cartItems) {
-            const productId = item.id || item.productId || item._id;
-            const size = item.size || item.selectedSize;
-            const quantity = Number(item.quantity);
-
-            if (!productId || !size || !Number.isFinite(quantity) || quantity <= 0) {
-              console.warn(
-                "Skipping inventory update for item (bad vars):",
-                item
-              );
-              continue;
-            }
-
-            try {
-              await decreaseInventory({
-                variables: { productId, size, quantity },
-              });
-            } catch (invErr) {
-              console.error("Inventory update failed for item:", item);
-
-              if (invErr.networkError && invErr.networkError.result) {
-                console.error(
-                  "Network error result:",
-                  invErr.networkError.result
-                );
-              }
-              if (invErr.graphQLErrors && invErr.graphQLErrors.length) {
-                console.error("GraphQL errors:", invErr.graphQLErrors);
-              }
-            }
-          }
-        } else {
-          console.warn("No cartItems provided, skipping inventory update.");
+        if (!Array.isArray(cartItems) || cartItems.length === 0) {
+          throw new Error("No cart items found.");
         }
 
+        const orderItems = cartItems.map((item) => ({
+          productId: item.id || item.productId || item._id,
+          name: item.name,
+          price: Number(item.price),
+          size: item.size || item.selectedSize,
+          color: item.color,
+          quantity: Number(item.quantity),
+        }));
+
+        const hasBadItem = orderItems.some(
+          (item) =>
+            !item.productId ||
+            !item.name ||
+            !item.size ||
+            !Number.isFinite(item.price) ||
+            !Number.isFinite(item.quantity) ||
+            item.quantity <= 0
+        );
+
+        if (hasBadItem) {
+          console.warn("Bad order items:", orderItems);
+          throw new Error("One or more cart items are missing required data.");
+        }
+
+        const customer = {
+          name: finalBillingDetails.name || "Guest Customer",
+          email,
+        };
+
+        const orderResult = await createOrder({
+          variables: {
+            customer,
+            items: orderItems,
+            total: safeAmount / 100,
+          },
+        });
+
         setSuccessMessage("Payment successful!");
+
         if (typeof onPaymentSuccess === "function") {
-          onPaymentSuccess(paymentIntent);
+          onPaymentSuccess(paymentIntent, orderResult.data?.createOrder);
         }
       } else {
         setGeneralError("Payment did not complete. Please try again.");

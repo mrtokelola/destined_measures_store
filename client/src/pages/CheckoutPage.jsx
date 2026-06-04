@@ -108,14 +108,15 @@ function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [showDeliveryOptions, setShowDeliveryOptions] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState("standard");
-
   const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem("cart");
+
       if (stored) {
         const parsed = JSON.parse(stored);
+
         if (Array.isArray(parsed)) {
           setCartItems(parsed);
         }
@@ -125,26 +126,41 @@ function CheckoutPage() {
     }
   }, []);
 
-  const fallbackTotalCents = 5000;
-  const cartTotalCents =
+  const TAX_RATE = 0.0625;
+
+  const subtotal =
     cartItems.length > 0
-      ? Math.round(
-        cartItems.reduce((sum, item) => {
-          const price = Number(item.price) || 0;
-          const quantity = Number(item.quantity) || 1;
-          return sum + price * quantity;
-        }, 0) * 100
-      ) : fallbackTotalCents;
+      ? cartItems.reduce((sum, item) => {
+        const price = Number(item.price) || 0;
+        const quantity = Number(item.quantity) || 1;
+
+        return sum + price * quantity;
+      }, 0)
+      : 50;
+
+  const tax = subtotal * TAX_RATE;
+
+  const shipping =
+    deliveryOption === "twoDay"
+      ? 10
+      : deliveryOption === "oneDay"
+        ? 15
+        : 0;
+
+  const total = subtotal + tax + shipping;
+
+  const cartTotalCents = Math.round(total * 100);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormValues((prev) => ({...prev, [name]: value,}));
+    setFormValues((prev) => ({ ...prev, [name]: value }));
 
     if (errors[name]) {
       setErrors((prev) => {
         const copy = { ...prev };
         delete copy[name];
+
         return copy;
       });
     }
@@ -169,6 +185,7 @@ function CheckoutPage() {
       newErrors.phone = "Phone number is required";
     } else {
       const digits = formValues.phone.replace(/\D/g, "");
+
       if (digits.length < 10) {
         newErrors.phone = "Enter a valid phone number";
       }
@@ -223,9 +240,7 @@ function CheckoutPage() {
                 onChange={handleChange}
                 $hasError={!!errors.firstName}
               />
-              {errors.firstName && (
-                <ErrorText>{errors.firstName}</ErrorText>
-              )}
+              {errors.firstName && <ErrorText>{errors.firstName}</ErrorText>}
             </FormGroup>
 
             <FormGroup>
@@ -239,9 +254,7 @@ function CheckoutPage() {
                 onChange={handleChange}
                 $hasError={!!errors.lastName}
               />
-              {errors.lastName && (
-                <ErrorText>{errors.lastName}</ErrorText>
-              )}
+              {errors.lastName && <ErrorText>{errors.lastName}</ErrorText>}
             </FormGroup>
           </FormRow>
 
@@ -256,9 +269,7 @@ function CheckoutPage() {
               onChange={handleChange}
               $hasError={!!errors.address1}
             />
-            {errors.address1 && (
-              <ErrorText>{errors.address1}</ErrorText>
-            )}
+            {errors.address1 && <ErrorText>{errors.address1}</ErrorText>}
           </FormGroup>
 
           <FormGroup>
@@ -436,6 +447,20 @@ function CheckoutPage() {
 
               <Divider />
               <Title>Payment Method</Title>
+
+              <div>
+                <p>Subtotal: ${subtotal.toFixed(2)}</p>
+
+                <p>
+                  Shipping: {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                </p>
+
+                <p>Tax: ${tax.toFixed(2)}</p>
+
+                <p>
+                  <strong>Total: ${total.toFixed(2)}</strong>
+                </p>
+              </div>
 
               <CheckoutForm
                 amountInCents={cartTotalCents}
