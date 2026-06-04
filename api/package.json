@@ -13,12 +13,15 @@
   "private": true,
   "dependencies": {
     "@apollo/server": "^5.4.0",
-    "@apollo/server-plugin-landing-page-graphql-playground": "^4.0.1",
+    "@sendgrid/mail": "^8.1.6",
     "body-parser": "^2.2.2",
+    "bullmq": "^5.70.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "graphql": "^16.12.0",
     "graphql-tag": "^2.12.6",
+    "lodash": "^4.17.23",
+    "lodash.merge": "^4.6.2",
     "mongoose": "^9.2.1",
     "stripe": "^20.3.1"
   },

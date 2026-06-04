@@ -1,5 +1,11 @@
 import gql from "graphql-tag";
 
+// type = format of data the API returns
+// input = format of data the API accepts
+// enum = list of allowed values
+// type query = used to GET/fetch/read data
+// type Mutation =
+
 const types = gql`
   type Variant {
     size: String!
@@ -51,9 +57,10 @@ const types = gql`
   }
   
   type OrderItem {
+    productId: ID
     name: String!
     price: Float
-    size: Int
+    size: String!
     color: String
     quantity: Int
   }
@@ -68,6 +75,7 @@ const types = gql`
     customer: Customer
     items: [OrderItem!]!
     total: Float
+    createdAt: String
   }
 
   type PaymentIntentResult {
@@ -75,9 +83,10 @@ const types = gql`
   }
   
   input OrderItemInput {
+    productId: ID!
     name: String!
     price: Float
-    size: Int
+    size: String!
     color: String
     quantity: Int
   }
@@ -98,6 +107,7 @@ const types = gql`
     clothing(id: ID!): Clothing
     clothesFilters: ClothesFilters!
     orders: [Order!]!
+    order(id: ID!): Order
   }
 
   type Mutation {
@@ -117,16 +127,32 @@ const types = gql`
       total: Float!
     ): Order!
 
+    updateClothing(
+      id: ID!
+      name: String!
+      price: Float!
+      category: String!
+      inStock: Boolean!
+      imageUrl: String!
+      color: String!
+      variants: [VariantInput!]!
+    ): Clothing!
+
     createPaymentIntent(
       amount: Int!
+      items: [OrderItemInput!]!
     ): PaymentIntentResult!
+
+    deleteClothing(id: ID!): Clothing!
+
+    deleteOrder(id: ID!): Order!
       
     decreaseInventory(
       productId: ID! 
       size: String!
       quantity: Int!
     ): Variant
-    
+      
     increaseInventory(
       productId: ID!
       size: String!

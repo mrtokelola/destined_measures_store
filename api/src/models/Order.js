@@ -4,7 +4,7 @@ const orderItemSchema = new mongoose.Schema(
   {
     name: { type: String },
     price: { type: Number },
-    size: { type: Number },
+    size: { type: String },
     color: { type: String },
     quantity: { type: Number },
   }
