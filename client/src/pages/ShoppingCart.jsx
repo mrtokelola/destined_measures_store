@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { gql } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import styled from "styled-components";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const CartContainer = styled.div`
   max-width: 900px;
@@ -9,67 +11,88 @@ const CartContainer = styled.div`
 `;
 
 const CartTitle = styled.h1`
-  margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
 `;
 
 const CartItem = styled.div`
-  display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid lightgrey;
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid lightgrey;
 `;
 
 const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
+    display: flex;
+    justify-content: space-between;
 `;
 
 const ItemImage = styled.img`
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
 `;
 
 const ItemInfo = styled.div`
-  font-size: 0.9rem;
+    font-size: 0.9rem;
 
-  p {
-    margin: 0.15rem 0;
-  }
+    p {
+        margin: 0.15rem 0;
+    }
 `;
 
 const ItemPrice = styled.div`
-  font-weight: bold;
+    font-weight: bold;
 `;
 
 const EmptyState = styled.p`
-  margin-top: 1rem;
+    margin-top: 1rem;
 `;
 
 const Summary = styled.div`
-  margin-top: 1.5rem;
-  text-align: right;
-  font-size: 1rem;
+    margin-top: 1.5rem;
+    text-align: right;
+    font-size: 1rem;
 
-  strong {
-    font-size: 1.1rem;
-  }
+    strong {
+        font-size: 1.1rem;
+    }
 `;
 
 const ClearButton = styled.button`
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: 1px solid darkgrey;
-  background: white;
-  cursor: pointer;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: 1px solid darkgrey;
+    background: white;
+    cursor: pointer;
+    opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+`;
+
+const RELEASE_RESERVED_INVENTORY = gql`
+    mutation ReleaseReservedInventory(
+        $productId: ID!
+        $size: String!
+        $quantity: Int!
+    ) {
+        releaseReservedInventory(
+            productId: $productId
+            size: $size
+            quantity: $quantity
+        ) {
+            size
+            quantity
+            reservedQuantity
+        }
+    }
 `;
 
 function ShoppingCart() {
   const [items, setItems] = useState([]);
+  const [releaseReservedInventory, { loading: releasingInventory }] =
+    useMutation(RELEASE_RESERVED_INVENTORY);
 
   useEffect(() => {
     try {
@@ -87,9 +110,26 @@ function ShoppingCart() {
     0
   );
 
-  const handleClearCart = () => {
-    localStorage.removeItem("cart");
-    setItems([]);
+  const handleClearCart = async () => {
+    try {
+      await Promise.all(
+        items.map((item) =>
+          releaseReservedInventory({
+            variables: {
+              productId: item.id,
+              size: item.size,
+              quantity: item.quantity,
+            },
+          })
+        )
+      );
+
+      localStorage.removeItem("cart");
+      setItems([]);
+    } catch (error) {
+      console.error("Failed to release reserved inventory", error);
+      alert("Failed to clear cart. Please try again.");
+    }
   };
 
   return (
@@ -121,14 +161,27 @@ function ShoppingCart() {
             <p>
               Subtotal: <strong>${subtotal.toFixed(2)}</strong>
             </p>
+
             <ButtonContainer>
               <Link to={`/checkout`}>
-                <ClearButton>Checkout</ClearButton>
+                <ClearButton disabled={releasingInventory}>
+                  Checkout
+                </ClearButton>
               </Link>
+
               <Link to={`/products`}>
-                <ClearButton>Continue Shopping</ClearButton>
+                <ClearButton disabled={releasingInventory}>
+                  Continue Shopping
+                </ClearButton>
               </Link>
-              <ClearButton onClick={handleClearCart}>Clear cart</ClearButton>
+
+              <ClearButton
+                type="button"
+                onClick={handleClearCart}
+                disabled={releasingInventory}
+              >
+                {releasingInventory ? "Clearing..." : "Clear cart"}
+              </ClearButton>
             </ButtonContainer>
           </Summary>
         </>

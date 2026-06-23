@@ -6,7 +6,8 @@ import increaseInventoryResolvers from "./increaseInventoryResolvers.js";
 import createClothingResolvers from "./createClothingResolvers.js";
 import updateClothingResolvers from "./updateClothingResolvers.js";
 import deleteClothingResolvers from "./deleteClothingResolvers.js";
-
+import reserveInventoryResolvers from "./reserveInventoryResolvers.js";
+import releaseReservedInventoryResolvers from "./releaseReservedInventoryResolvers.js";
 
 const clothingResolvers = {
   Query: {
@@ -33,6 +34,8 @@ export default merge(
   increaseInventoryResolvers,
   createClothingResolvers,
   updateClothingResolvers,
+  reserveInventoryResolvers,
+  releaseReservedInventoryResolvers,
   deleteClothingResolvers,
   orderResolvers
 );

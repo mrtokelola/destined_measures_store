@@ -23,7 +23,10 @@
     "lodash": "^4.17.23",
     "lodash.merge": "^4.6.2",
     "mongoose": "^9.2.1",
-    "stripe": "^20.3.1"
+    "pg": "^8.22.0",
+    "reflect-metadata": "^0.2.2",
+    "stripe": "^20.3.1",
+    "typeorm": "^1.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

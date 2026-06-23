@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
+import { useQuery, useMutation } from "@apollo/client/react";
 import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import {
@@ -18,92 +18,103 @@ import {
 import { QuantityPicker } from "react-qty-picker";
 
 const StyledContainer = styled.div`
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
 `;
 
 const ModalImage = styled.img`
-  width: 100%;
-  max-width: 200px;
-  margin: 0 auto 1rem;
-  display: block;
-  border-radius: 8px;
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto 1rem;
+    display: block;
+    border-radius: 8px;
 `;
 
 const AddToCart = styled.button`
-  margin-top: 1rem;
-  width: 100%;
-  height: 50px;
-  background-color: white;
-  border: 1px solid #dfdfdf;
-  cursor: pointer;
-  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+    margin-top: 1rem;
+    width: 100%;
+    height: 50px;
+    background-color: white;
+    border: 1px solid #dfdfdf;
+    cursor: pointer;
+    opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 `;
 
 const Price = styled.p`
-  margin-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
 `;
 
 const PickerLabel = styled.p`
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
 `;
 
 const PickerWrap = styled.div`
-  margin-top: 0.5rem;
+    margin-top: 0.5rem;
 `;
 
 const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  height: 3rem;
+    display: flex;
+    justify-content: space-between;
+    height: 3rem;
 `;
 
 const Img = styled.img`
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  object-fit: cover;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    object-fit: cover;
 `;
 
 const StyledSelect = styled(Select)`
-  margin-bottom: 1rem;
+    margin-bottom: 1rem;
 `;
 
 const CloseButton = styled(IconButton)`
-  position: absolute !important;
-  right: 8px;
-  top: 8px;
-  color: darkgrey;
+    position: absolute !important;
+    right: 8px;
+    top: 8px;
+    color: darkgrey;
 `;
 
 const GET_CLOTHING = gql`
-  query GetClothing($id: ID!) {
-    clothing(id: $id) {
-      id
-      name
-      price
-      category
-      imageUrl
-      inStock
-      color
-      variants {
-        size
-        quantity
-      }
+    query GetClothing($id: ID!) {
+        clothing(id: $id) {
+            id
+            name
+            price
+            category
+            imageUrl
+            inStock
+            color
+            variants {
+                size
+                quantity
+                reservedQuantity
+            }
+        }
     }
-  }
+`;
+
+const RESERVE_INVENTORY = gql`
+    mutation ReserveInventory($productId: ID!, $size: String!, $quantity: Int!) {
+        reserveInventory(productId: $productId, size: $size, quantity: $quantity) {
+            size
+            quantity
+            reservedQuantity
+        }
+    }
 `;
 
 function ProductsDetail() {
@@ -118,6 +129,8 @@ function ProductsDetail() {
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reserveInventory, { loading: reservingInventory }] =
+    useMutation(RESERVE_INVENTORY);
 
   if (loading) {
     return <StyledContainer>Loading...</StyledContainer>;
@@ -133,23 +146,36 @@ function ProductsDetail() {
 
   const item = data.clothing;
   const variants = item.variants || [];
-  const allSizesSoldOut = variants.length > 0 && variants.every((v) => v.quantity === 0);
+
+  const allSizesSoldOut =
+    variants.length > 0 &&
+    variants.every((variant) => {
+      return variant.quantity - variant.reservedQuantity <= 0;
+    });
 
   const handleSizeChange = (event) => {
     const value = event.target.value;
     setSelectedSize(value);
-
-    const variant = variants.find((v) => v.size === value);
-    if (variant && variant.quantity > 0) {
-      setQuantity(1);
-    } else {
-      setQuantity(1);
-    }
+    setQuantity(1);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedSize) {
       alert("Please select a size before adding to cart.");
+      return;
+    }
+
+    try {
+      await reserveInventory({
+        variables: {
+          productId: item.id,
+          size: selectedSize,
+          quantity,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to reserve inventory", err);
+      alert("Not enough inventory available.");
       return;
     }
 
@@ -245,7 +271,10 @@ function ProductsDetail() {
               onChange={handleSizeChange}
             >
               {variants.map((variant) => {
-                const isOutOfStock = variant.quantity === 0;
+                const availableQuantity =
+                  variant.quantity - variant.reservedQuantity;
+
+                const isOutOfStock = availableQuantity <= 0;
 
                 return (
                   <MenuItem
@@ -272,13 +301,18 @@ function ProductsDetail() {
             <AddToCart
               type="button"
               onClick={handleAddToCart}
-              disabled={allSizesSoldOut}
+              disabled={allSizesSoldOut || reservingInventory}
             >
-              {allSizesSoldOut ? "Sold out" : "Add to cart"}
+              {allSizesSoldOut
+                ? "Sold out"
+                : reservingInventory
+                  ? "Adding..."
+                  : "Add to cart"}
             </AddToCart>
           </FormControl>
         </div>
       </Grid>
+
       <Dialog open={isModalOpen} onClose={handleCloseModal} fullWidth maxWidth="xs">
         <DialogTitle sx={{ m: 0, p: 2 }}>
           Added to cart
@@ -286,6 +320,7 @@ function ProductsDetail() {
             ×
           </CloseButton>
         </DialogTitle>
+
         <DialogContent dividers>
           <ModalImage src={item.imageUrl} alt={item.name} />
           <Typography variant="body1" gutterBottom align="center">
@@ -297,6 +332,7 @@ function ProductsDetail() {
             Quantity: {quantity}
           </Typography>
         </DialogContent>
+
         <ButtonContainer>
           <Button onClick={handleContinueShopping}>Continue shopping</Button>
           <Button onClick={handleGoToCart}>Go to cart</Button>

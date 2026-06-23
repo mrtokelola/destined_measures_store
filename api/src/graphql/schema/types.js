@@ -10,11 +10,13 @@ const types = gql`
   type Variant {
     size: String!
     quantity: Int!
+    reservedQuantity: Int!
   }
 
   input VariantInput {
     size: String!
     quantity: Int!
+    reservedQuantity: Int
   }
 
   type Clothing {
@@ -157,6 +159,18 @@ const types = gql`
       productId: ID!
       size: String!
       quantity: Int!
+    ): Variant
+
+    reserveInventory(
+        productId: ID!
+        size: String!
+        quantity: Int!
+    ): Variant
+
+    releaseReservedInventory(
+        productId: ID!
+        size: String!
+        quantity: Int!
     ): Variant
   }
 `;
